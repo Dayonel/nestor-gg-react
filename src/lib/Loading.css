@@ -1,0 +1,32 @@
+.loading {
+    position: fixed;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100dvw;
+    height: 100dvh;
+    gap: 0.5rem;
+}
+
+.loader {
+    background: #393939;
+}
+
+.progress {
+    background-color: white;
+    transition: all 0.2s;
+}
+
+.above {
+    position: absolute;
+}
+
+.bar {
+    height: 38px;
+}
+
+.intro {
+    background-color: white;
+}
