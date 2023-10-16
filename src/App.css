@@ -38,6 +38,27 @@
   }
 }
 
+main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  position: fixed;
+  overflow-y: auto;
+  overscroll-behavior: none;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
 #scrolling {
   position: fixed;
   width: 100%;

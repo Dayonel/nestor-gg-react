@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { gsap } from "gsap";
 import { SceneFX } from "./lib/SceneFX";
 import * as THREE from "three";
@@ -10,10 +10,10 @@ import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import WWater from './WWater'
 import ScrollTrigger from 'gsap/ScrollTrigger'
 
-export default function Scene1({ canvas, renderer, cameraZ = 40, onMount }: { canvas: HTMLCanvasElement, renderer: THREE.WebGLRenderer, cameraZ: number, onMount: (sceneFX: SceneFX) => void }) {
+export default function Scene1({ canvas, renderer, cameraZ = 40, onMount }: { canvas: any, renderer: THREE.WebGLRenderer, cameraZ: number, onMount: (sceneFX: SceneFX) => void }) {
     const start = 0;
     const end = 20;
-    let sceneFX: SceneFX;
+    const sceneFX = useRef<SceneFX>();
     let water: any;
     // let dispatch = createEventDispatcher();
     let group: THREE.Group;
@@ -23,7 +23,7 @@ export default function Scene1({ canvas, renderer, cameraZ = 40, onMount }: { ca
     useEffect(() => {
         gsap.registerPlugin(ScrollTrigger);
 
-        sceneFX = new SceneFX(
+        sceneFX.current = new SceneFX(
             start,
             end,
             canvas,
@@ -33,7 +33,9 @@ export default function Scene1({ canvas, renderer, cameraZ = 40, onMount }: { ca
             30000
         );
 
-        sceneFX.camera.position.set(0, 8, cameraZ);
+        if (!sceneFX) return;
+
+        sceneFX.current.camera.position.set(0, 8, cameraZ);
 
         console.log('waiting');
 
@@ -46,12 +48,14 @@ export default function Scene1({ canvas, renderer, cameraZ = 40, onMount }: { ca
         animateOnScroll();
 
         console.log('from child')
-        onMount(sceneFX);
+        onMount(sceneFX.current);
 
         // dispatch("mount", { sceneFX });
     }, []);
 
     const loadScene = async () => {
+        if (!sceneFX.current) return;
+
         group = new THREE.Group();
 
         const loader = new RGBELoader();
@@ -280,16 +284,18 @@ export default function Scene1({ canvas, renderer, cameraZ = 40, onMount }: { ca
         // group.add(model7);
         // group.add(model8);
 
-        sceneFX.scene.add(group);
+        sceneFX.current.scene.add(group);
     };
 
     const sceneLights = () => {
+        if (!sceneFX.current) return;
+
         // sky color ground color intensity
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 2);
         hemiLight.color.setHSL(0.6, 1, 0.6);
         hemiLight.groundColor.setHSL(0.095, 1, 0.75);
         hemiLight.position.set(0, 20, -20);
-        sceneFX.scene.add(hemiLight);
+        sceneFX.current.scene.add(hemiLight);
 
         const hemiLightHelper = new THREE.HemisphereLightHelper(hemiLight, 10);
         // scene.add(hemiLightHelper);
@@ -298,7 +304,7 @@ export default function Scene1({ canvas, renderer, cameraZ = 40, onMount }: { ca
         dirLight.color.setHSL(0.1, 1, 0.95);
         dirLight.position.set(-1, 1.75, 1);
         dirLight.position.multiplyScalar(30);
-        sceneFX.scene.add(dirLight);
+        sceneFX.current.scene.add(dirLight);
 
         dirLight.castShadow = true;
 
@@ -336,6 +342,8 @@ export default function Scene1({ canvas, renderer, cameraZ = 40, onMount }: { ca
     };
 
     const animateOnScroll = () => {
+        if (!sceneFX.current) return;
+
         gsap.timeline({
             scrollTrigger: {
                 scroller: "#scrolling",
@@ -344,9 +352,9 @@ export default function Scene1({ canvas, renderer, cameraZ = 40, onMount }: { ca
                 end: "+=" + window.innerHeight,
                 scrub: true,
             },
-        }).to(sceneFX.camera.position, {
-            x: sceneFX.camera.position.x,
-            y: sceneFX.camera.position.y,
+        }).to(sceneFX.current.camera.position, {
+            x: sceneFX.current.camera.position.x,
+            y: sceneFX.current.camera.position.y,
             z: cameraZ,
         });
 
@@ -359,8 +367,8 @@ export default function Scene1({ canvas, renderer, cameraZ = 40, onMount }: { ca
     };
 
     const WWaterIf = () => {
-        if (sceneFX) {
-            return (<WWater scene={sceneFX.scene} />)
+        if (sceneFX.current) {
+            return (<WWater scene={sceneFX.current.scene} />)
         }
     }
 

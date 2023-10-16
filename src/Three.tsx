@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import WebGL from "three/examples/jsm/capabilities/WebGL.js";
 import * as THREE from "three";
 import Stats from "three/examples/jsm/libs/stats.module";
@@ -7,32 +7,32 @@ import { SceneFX } from "./lib/SceneFX"
 import Loading from './lib/Loading'
 import Scene1 from './Scene1'
 import React from 'react'
+import styles from './Three.module.scss';
 
 export default function Three({ scrollPercent = 0, onMount }: { scrollPercent: number, onMount: () => void }) {
-    const [webGLAvailable, setWebGLAvailable] = React.useState(false);
-    // const [sceneFX, setSceneFX] = React.useState<SceneFX>();
-    const [scenes, setScenes] = React.useState<SceneFX[]>([]);
+    const webGLAvailable = React.useRef(false);
+    const scenes = React.useRef<SceneFX[]>([]);
+    const loading = React.useRef(true);
 
+    let cameraZ: number = 40;
+    let canvas = React.useRef<HTMLCanvasElement>(null);
     let message: string | undefined = undefined;
     // let dispatch = createEventDispatcher();
-    let canvas: HTMLCanvasElement;
     let renderer: THREE.WebGLRenderer;
     let stats: any;
-    let loading: boolean = true;
     let introAnimationCompleted: boolean;
     let animationIntro: any;
-    let cameraZ: number;
     let progress = 0;
 
-    const totalScenes = 1;
+    const totalScenes = 2;
 
     useEffect(() => {
         let available = WebGL.isWebGLAvailable();
-        setWebGLAvailable(available);
+        webGLAvailable.current = available;
         if (!available) {
             const warning = WebGL.getWebGLErrorMessage();
             message = warning.innerText;
-            loading = false;
+            loading.current = false;
             return;
         }
 
@@ -40,16 +40,15 @@ export default function Three({ scrollPercent = 0, onMount }: { scrollPercent: n
 
         window.onresize = () => onResize();
         onResize();
-
-        requestAnimationFrame(loop);
-
-
+        loop();
     }, [])
 
     const init = () => {
+        if (!canvas.current) return;
+
         // renderer
         renderer = new THREE.WebGLRenderer({
-            canvas: canvas,
+            canvas: canvas.current,
             antialias: true,
             alpha: true,
             powerPreference: "high-performance",
@@ -67,10 +66,16 @@ export default function Three({ scrollPercent = 0, onMount }: { scrollPercent: n
         // stats
         stats = new Stats();
         document.body.appendChild(stats.dom);
+
+        console.log('canvas initialized')
     };
 
     const onResize = () => {
-        scenes?.forEach((f) => f.resize(canvas, renderer));
+        scenes.current?.forEach((f) => {
+            if (!canvas.current) return;
+
+            f.resize(canvas.current, renderer);
+        });
     };
 
     const introAnimation = (camera: THREE.PerspectiveCamera) => {
@@ -92,23 +97,22 @@ export default function Three({ scrollPercent = 0, onMount }: { scrollPercent: n
     };
 
     const loop = () => {
-        if (!webGLAvailable) return;
+        if (!webGLAvailable.current) return;
 
         requestAnimationFrame(loop);
 
-        stats.update();
+        stats?.update();
 
-        if (!loading && !introAnimationCompleted) TWEEN.update();
+        if (!loading.current && !introAnimationCompleted) TWEEN.update();
 
-        console.log(scenes)
-        if (loading && scenes?.length == totalScenes) {
+        if (loading.current && scenes.current?.length == totalScenes) {
             console.log('LOADED!')
             onMount();
             animationIntro.start();
-            loading = false;
+            loading.current = false
         }
 
-        scenes?.forEach((f) => {
+        scenes.current?.forEach((f) => {
             if (scrollPercent >= f.start && scrollPercent <= f.end) {
                 renderer.render(f.scene, f.camera);
             }
@@ -117,22 +121,21 @@ export default function Three({ scrollPercent = 0, onMount }: { scrollPercent: n
 
     const onScene1Mount = (sceneFX: SceneFX) => {
         console.log('FROM CHILD');
-        // setSceneFX(sceneFX)
-        setScenes([...scenes, sceneFX]);
+        scenes.current = [...scenes.current, sceneFX];
         introAnimation(sceneFX.camera);
     }
 
     const LoadingIf = () => {
         var result;
-        if (loading) {
+        if (loading.current) {
             result = (<Loading></Loading>)
         }
         if (webGLAvailable) {
             result = (
-                <div>
+                <>
                     <span className="scroll">Scroll progress: {scrollPercent?.toFixed(2)}%</span>
-                    <Scene1 canvas={canvas} renderer={renderer} cameraZ={cameraZ} onMount={onScene1Mount} />
-                </div>
+                    <Scene1 canvas={canvas.current} renderer={renderer} cameraZ={cameraZ} onMount={onScene1Mount} />
+                </>
             )
         }
         if (message) {
@@ -144,6 +147,7 @@ export default function Three({ scrollPercent = 0, onMount }: { scrollPercent: n
 
     return (
         <>
+            <canvas ref={canvas} />
             {LoadingIf()}
         </>
     )

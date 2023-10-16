@@ -1,14 +1,14 @@
 import './App.css';
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Three from './Three'
 import { gsap } from "gsap";
 import ScrollTrigger from 'gsap/ScrollTrigger'
 
 export default function App() {
-  let loading = true;
+  const [loading, setLoading] = useState(true);
   let scrollPercent: number = 0;
   let scrollHidden: boolean = true;
-  let scrolling: any;
+  let scrolling = useRef<HTMLDivElement>(null);
   let totalHeight: number;
   let scrollY: number;
   let sections: any[];
@@ -20,21 +20,25 @@ export default function App() {
   }, []);
 
   const loaded = () => {
-    console.log('MOUNT')
-    loading = false;
+    console.log('FINAL MOUNT')
+    setLoading(false);
     textReveal();
 
-    scrolling.onscroll = () => {
-      scrollPercent =
-        (scrolling.scrollTop /
-          (scrolling.scrollHeight - scrolling.clientHeight)) *
-        100;
+    if (scrolling.current) {
+      scrolling.current.onscroll = () => {
+        if (!scrolling.current) return;
 
-      scrollY = scrolling.scrollTop;
-      if (scrollPercent > 1) toggleScroll(true);
-      else toggleScroll(false);
+        scrollPercent =
+          (scrolling.current.scrollTop /
+            (scrolling.current.scrollHeight - scrolling.current.clientHeight)) *
+          100;
+
+        scrollY = scrolling.current?.scrollTop;
+        if (scrollPercent > 1) toggleScroll(true);
+        else toggleScroll(false);
+      };
     };
-  };
+  }
 
   const toggleScroll = (hide: boolean) => {
     if (hide == scrollHidden) return;
@@ -70,9 +74,9 @@ export default function App() {
   };
 
   return (
-    <>
+    <main>
       <Three scrollPercent={scrollPercent} onMount={loaded} />
-      <div id="scrolling" className={loading ? "hide" : ""}>
+      <div ref={scrolling} id="scrolling" className={loading ? "hide" : ""}>
         <div id="three">
           <section className="hero">
             <div className="block">
@@ -118,6 +122,6 @@ export default function App() {
           </section>
         </div>
       </div>
-    </>
+    </main>
   );
 }
